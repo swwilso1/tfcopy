@@ -112,7 +112,8 @@ namespace copy
 
                     ItemCopier copier{m_source_path, m_destination_path};
                     copier.set_notifier(notifier);
-                    copier.copy(interrupter);
+                    copier.set_interrupter(interrupter);
+                    copier.copy();
 
                     auto permissions = m_file_manager.permissionsForItemAtPath(m_source_path);
                     m_file_manager.setPermissionsForItemAtPath(m_destination_path, permissions);
@@ -126,7 +127,7 @@ namespace copy
             }
             else if (m_file_manager.directoryExistsAtPath(m_source_path))
             {
-                if (! m_file_manager.directoryExistsAtPath(m_destination_path))
+                if (m_file_manager.fileExistsAtPath(m_destination_path))
                 {
                     update_progress_message("Unable to copy a directory to a file!");
                     m_copy_thread_finished = true;
@@ -164,11 +165,6 @@ namespace copy
 
                     m_file_manager.walkItemsAtPath(
                         true, m_source_path, [this, &notifier, &interrupter](const String & path) -> bool {
-                            if (m_file_manager.directoryExistsAtPath(path))
-                            {
-                                return true;
-                            }
-
                             auto directory_path_part = m_file_manager.dirNameOfItemAtPath(path);
                             auto base_file_name = m_file_manager.baseNameOfItemAtPath(path);
 
@@ -186,6 +182,15 @@ namespace copy
 
                             auto full_destination_path = destination_path + FileManager::pathSeparator + base_file_name;
 
+                            if (m_file_manager.directoryExistsAtPath(path))
+                            {
+                                if (! m_file_manager.directoryExistsAtPath(full_destination_path))
+                                {
+                                    m_file_manager.createDirectoriesAtPath(full_destination_path);
+                                }
+                                return true;
+                            }
+
                             if (! m_file_manager.directoryExistsAtPath(destination_path))
                             {
                                 m_file_manager.createDirectoriesAtPath(destination_path);
@@ -195,7 +200,8 @@ namespace copy
 
                             auto copier = ItemCopier{path, full_destination_path};
                             copier.set_notifier(notifier);
-                            copier.copy(interrupter);
+                            copier.set_interrupter(interrupter);
+                            copier.copy();
 
                             if (m_interrupted)
                             {
