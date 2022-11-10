@@ -43,15 +43,14 @@ namespace copy
             m_current_files += amount;
         });
 
-        m_buttons = Container::Horizontal({
-                                           Button(
-                                               "Cancel",
-                                               [this] {
-                                                   m_interrupted = true;
-                                                   auto closure = m_screen.ExitLoopClosure();
-                                                   closure();
-                                               },
-                                               m_model.button_style)});
+        m_buttons = Container::Horizontal({Button(
+            "Exit",
+            [this] {
+                m_interrupted = true;
+                auto closure = m_screen.ExitLoopClosure();
+                closure();
+            },
+            m_model.button_style)});
 
         this->Add(Container::Vertical({m_buttons}));
     }
@@ -165,9 +164,18 @@ namespace copy
 
                             auto directory_path_part = m_file_manager.dirNameOfItemAtPath(path);
                             auto base_file_name = m_file_manager.baseNameOfItemAtPath(path);
-                            auto sub_directory_part = directory_path_part.substringFromIndex(m_source_path.length());
-                            auto destination_path =
-                                m_destination_path + FileManager::pathSeparator + sub_directory_part;
+
+                            String destination_path{};
+                            if (directory_path_part == m_source_path)
+                            {
+                                destination_path = m_destination_path;
+                            }
+                            else
+                            {
+                                auto sub_directory_part =
+                                    directory_path_part.substringFromIndex(m_source_path.length() + 1);
+                                destination_path = m_destination_path + FileManager::pathSeparator + sub_directory_part;
+                            }
 
                             auto full_destination_path = destination_path + FileManager::pathSeparator + base_file_name;
 
@@ -186,6 +194,9 @@ namespace copy
                             {
                                 return false;
                             }
+
+                            auto permissions = m_file_manager.permissionsForItemAtPath(path);
+                            m_file_manager.setPermissionsForItemAtPath(full_destination_path, permissions);
 
                             m_file_progress_notifier.notify(1);
                             m_screen.PostEvent(Event::Custom);

@@ -49,7 +49,7 @@ namespace copy
         using string_type = std::string;
         using version_type = Version;
 
-        string_type tool_name{"Tectiform Copy Tool"};
+        string_type tool_name{"Tectiform Visual Copy Tool"};
         version_type tool_version{1, 0, 0};
 
         ButtonOption button_style{ButtonOption::Simple()};
