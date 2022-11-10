@@ -126,6 +126,13 @@ namespace copy
             }
             else if (m_file_manager.directoryExistsAtPath(m_source_path))
             {
+                if (! m_file_manager.directoryExistsAtPath(m_destination_path))
+                {
+                    update_progress_message("Unable to copy a directory to a file!");
+                    m_copy_thread_finished = true;
+                    return;
+                }
+
                 size_type bytes_to_copy{0};
 
                 m_file_manager.walkItemsAtPath(true, m_source_path,
