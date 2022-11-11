@@ -129,7 +129,9 @@ namespace copy
             {
                 if (m_file_manager.fileExistsAtPath(m_destination_path))
                 {
-                    update_progress_message("Unable to copy a directory to a file!");
+                    auto message = String::initWithFormat("cannot overwrite non-directory '%@' with directory '%@'",
+                                                          &m_destination_path, &m_source_path);
+                    update_progress_message(message);
                     m_copy_thread_finished = true;
                     return;
                 }
