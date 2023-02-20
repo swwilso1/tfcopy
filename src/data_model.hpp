@@ -50,7 +50,7 @@ namespace copy
         using version_type = Version;
 
         string_type tool_name{"Tectiform Visual Copy Tool"};
-        version_type tool_version{1, 0, 0};
+        version_type tool_version{1, 0, 1};
 
         ButtonOption button_style{ButtonOption::Simple()};
         Color background_color{Color::NavyBlue};
