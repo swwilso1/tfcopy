@@ -58,7 +58,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo_minsizerel.cmake OPTIONAL)
 
 conan_basic_setup(TARGETS)
 
-list(APPEND CMAKE_PREFIX_PATH ${TFFOUNDATION_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${TECTIFORM_DIR})
 find_package(TFFoundation)
 
 set(CONFIGURED_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/configured_files)
