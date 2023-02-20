@@ -53,8 +53,10 @@ namespace copy
         version_type tool_version{1, 0, 0};
 
         ButtonOption button_style{ButtonOption::Simple()};
-        Color background_color{Color::GrayDark};
-        Color foreground_window_background_color{Color::NavyBlue};
+        Color background_color{Color::NavyBlue};
+        Color foreground_window_background_color{Color::GrayLight};
+        Color foreground_window_foreground_color{Color::Red};
+        Color text_color{Color::NavyBlue};
 
         DataModel();
 

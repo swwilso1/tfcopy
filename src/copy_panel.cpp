@@ -60,14 +60,15 @@ namespace copy
         auto duration = duration_cast<std::chrono::milliseconds>(SystemDate{} - m_start_copy_time);
         auto duration_text = m_duration_formatter.string_from_duration(duration);
         auto text_for_file_progress = String::initWithFormat("%u/%u files", m_current_files, m_total_files);
-        auto top_box = hbox({gauge(m_percent_files_copied), separator(), text(text_for_file_progress.stlString()),
-                             separator(), text(duration_text.stlString())});
+        auto top_box = hbox({gauge(m_percent_files_copied) | color(m_model.text_color), separator(), text(text_for_file_progress.stlString()) | color(m_model.text_color),
+                             separator(), text(duration_text.stlString()) | color(m_model.text_color)});
         return main_ui_element({filler(),
                                 hbox({filler(),
                                       vbox({filler(), top_box, separator(),
-                                            hbox({text(m_progress_message) | size(WIDTH, EQUAL, 70), filler()}),
-                                            separator(), hbox({filler(), m_buttons->Render(), filler()}), filler()}) |
-                                          border | bgcolor(m_model.foreground_window_background_color),
+                                            hbox({text(m_progress_message) | size(WIDTH, EQUAL, 70) | color(m_model.text_color), filler()}),
+                                            separator(), hbox({filler(), m_buttons->Render(), filler()}) | color(m_model.text_color), filler()}) |
+                                          border | bgcolor(m_model.foreground_window_background_color) |
+                                          color(m_model.foreground_window_foreground_color),
                                       filler()}),
                                 filler()});
     }

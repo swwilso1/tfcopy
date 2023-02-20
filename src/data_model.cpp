@@ -33,10 +33,10 @@ namespace copy
 
     DataModel::DataModel()
     {
-        if (Terminal::ColorSupport() <= Terminal::Palette16)
-        {
-            background_color = Color::GreenLight;
-        }
+//        if (Terminal::ColorSupport() <= Terminal::Palette16)
+//        {
+//            background_color = Color::GreenLight;
+//        }
     }
 
 } // namespace copy
