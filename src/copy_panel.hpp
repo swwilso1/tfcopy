@@ -31,6 +31,7 @@
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <ftxui/dom/elements.hpp>
+#include <mutex>
 
 #include "TFFoundation.hpp"
 #include "data_model.hpp"
@@ -76,6 +77,7 @@ namespace copy
         size_type m_current_files{0};
         float m_percent_files_copied{0.0};
         std::string m_progress_message{};
+        std::mutex m_progress_message_mutex{};
 
         SystemDate m_start_copy_time{};
         DurationFormatter m_duration_formatter{"hh:mm:ss"};

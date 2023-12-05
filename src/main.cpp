@@ -49,6 +49,8 @@ int main(int argc, const char ** argv)
     parser.setVersion(data_model.tool_version);
     parser.setExitOnHelp(true);
     parser.addStoreTrueArgument({"-v", "--version"}, "", data_model.tool_name + " Version", false);
+    parser.addStoreTrueArgument({"-p", "--fix_paths"}, "", "Automatically correct problematic characters in file paths",
+                                false);
     parser.addPositionalArgument("source", ArgumentType::String, "Source path", false);
     parser.addPositionalArgument("destination", ArgumentType::String, "Destination path", false);
 
@@ -59,6 +61,8 @@ int main(int argc, const char ** argv)
 
     bool display_version{false};
     parser.getValueForArgument("version", display_version);
+
+    parser.getValueForArgument("fix_paths", data_model.fix_problematic_file_paths);
 
     String source_path{};
     if (parser.hasValueForArgument("source"))

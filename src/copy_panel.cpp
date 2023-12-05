@@ -57,6 +57,7 @@ namespace copy
 
     auto CopyPanel::Render() -> Element
     {
+        std::lock_guard<std::mutex> lock(m_progress_message_mutex);
         auto duration = duration_cast<std::chrono::milliseconds>(SystemDate{} - m_start_copy_time);
         auto duration_text = m_duration_formatter.string_from_duration(duration);
         auto text_for_file_progress = String::initWithFormat("%u/%u files", m_current_files, m_total_files);
@@ -156,6 +157,7 @@ namespace copy
                 m_progress_meter.set_total(bytes_to_copy);
                 copy_function = [this] {
                     m_start_copy_time = SystemDate{};
+                    bool encounteredError{false};
 
                     auto notifier = ItemCopier::notifier_type{[this](auto & size) {
                         m_progress_meter.increment_by(size);
@@ -167,7 +169,8 @@ namespace copy
                     };
 
                     m_file_manager.walkItemsAtPath(
-                        true, m_source_path, [this, &notifier, &interrupter](const String & path) -> bool {
+                        true, m_source_path,
+                        [this, &notifier, &interrupter, &encounteredError](const String & path) -> bool {
                             auto directory_path_part = m_file_manager.dirNameOfItemAtPath(path);
                             auto base_file_name = m_file_manager.baseNameOfItemAtPath(path);
 
@@ -183,28 +186,109 @@ namespace copy
                                 destination_path = m_destination_path + FileManager::pathSeparator + sub_directory_part;
                             }
 
-                            auto full_destination_path = destination_path + FileManager::pathSeparator + base_file_name;
+                            String full_destination_path{destination_path + FileManager::pathSeparator +
+                                                         base_file_name};
+
+                            auto fix_problematic_path_component = [](const String & component) -> String {
+                                auto tmp_component = component.stringByReplacingOccurrencesOfStringWithString(":", "_");
+                                tmp_component =
+                                    tmp_component.stringByReplacingOccurrencesOfStringWithString("\"", "\\\\\"");
+                                tmp_component =
+                                    tmp_component.stringByReplacingOccurrencesOfStringWithString(" ", "\\ ");
+                                LOG(LogPriority::Info, tmp_component)
+                                if (tmp_component.last() == ' ')
+                                {
+                                    tmp_component = tmp_component.substringToIndex(tmp_component.length() - 1);
+                                }
+                                return tmp_component;
+                            };
+
+                            auto fix_problematic_file_paths =
+                                [fix_problematic_path_component](const String & path) -> String {
+                                auto path_components = path.substringsThatDoNotMatchString(FileManager::pathSeparator);
+                                String::string_array_type new_path_components{};
+                                for (auto & component : path_components)
+                                {
+                                    if (component.empty())
+                                    {
+                                        continue;
+                                    }
+                                    new_path_components.push_back(fix_problematic_path_component(component));
+                                }
+                                String new_path{FileManager::pathSeparator};
+                                for (String::string_array_type::size_type i = 0; i < new_path_components.size(); i++)
+                                {
+                                    new_path += new_path_components[i];
+                                    if (i < new_path_components.size() - 1)
+                                    {
+                                        new_path += FileManager::pathSeparator;
+                                    }
+                                }
+                                return new_path;
+                            };
+
+                            if (m_model.fix_problematic_file_paths)
+                            {
+                                destination_path = fix_problematic_file_paths(destination_path);
+                                full_destination_path = fix_problematic_file_paths(full_destination_path);
+                            }
 
                             if (m_file_manager.directoryExistsAtPath(path))
                             {
                                 if (! m_file_manager.directoryExistsAtPath(full_destination_path))
                                 {
-                                    m_file_manager.createDirectoriesAtPath(full_destination_path);
+                                    try
+                                    {
+                                        m_file_manager.createDirectoriesAtPath(full_destination_path);
+                                    }
+                                    catch (std::exception & e)
+                                    {
+                                        encounteredError = true;
+                                        LOG(LogPriority::Critical,
+                                            "Error creating directory: " + full_destination_path + ": " + e.what())
+                                        update_progress_message("Error creating directory: " + full_destination_path +
+                                                                ": " + e.what());
+                                        return false;
+                                    }
                                 }
                                 return true;
                             }
 
                             if (! m_file_manager.directoryExistsAtPath(destination_path))
                             {
-                                m_file_manager.createDirectoriesAtPath(destination_path);
+                                try
+                                {
+                                    m_file_manager.createDirectoriesAtPath(destination_path);
+                                }
+                                catch (std::exception & e)
+                                {
+                                    encounteredError = true;
+                                    LOG(LogPriority::Critical,
+                                        "Error creating directory: " + destination_path + ": " + e.what())
+                                    update_progress_message("Error creating directory: " + destination_path + ": " +
+                                                            e.what());
+                                    return false;
+                                }
                             }
 
                             update_progress_message("Copying " + base_file_name);
 
-                            auto copier = ItemCopier{path, full_destination_path};
-                            copier.set_notifier(notifier);
-                            copier.set_interrupter(interrupter);
-                            copier.copy();
+                            try
+                            {
+                                auto copier = ItemCopier{path, full_destination_path};
+                                copier.set_notifier(notifier);
+                                copier.set_interrupter(interrupter);
+                                copier.copy();
+                            }
+                            catch (std::exception & e)
+                            {
+                                encounteredError = true;
+                                LOG(LogPriority::Critical,
+                                    "Error copying: " + path + " to " + full_destination_path + e.what())
+                                update_progress_message("Error copying " + path + " to " + full_destination_path +
+                                                        ": " + e.what());
+                                return false;
+                            }
 
                             if (m_interrupted)
                             {
@@ -219,7 +303,10 @@ namespace copy
                             return true;
                         });
 
-                    update_progress_message("Finished Copying!");
+                    if (! encounteredError)
+                    {
+                        update_progress_message("Finished Copying!");
+                    }
                     m_copy_thread_finished = true;
                 };
             }
@@ -245,6 +332,7 @@ namespace copy
 
     void CopyPanel::update_progress_message(const String & message)
     {
+        std::lock_guard<std::mutex> lock(m_progress_message_mutex);
         m_progress_message = message.stlStringInUTF8();
         m_screen.PostEvent(Event::Custom);
     }
