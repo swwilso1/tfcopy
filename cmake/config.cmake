@@ -15,7 +15,7 @@ include(cmake/conan.cmake)
 
 option(CONAN_BUILD_ALL "Require conan install to rebuild from source packages" OFF)
 
-list(APPEND CONAN_REQUIRES ftxui/3.0.0)
+list(APPEND CONAN_REQUIRES ftxui/5.0.0)
 
 if (CONAN_BUILD_ALL)
     set(CONAN_BUILD_ARG all)
