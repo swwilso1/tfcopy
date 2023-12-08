@@ -40,8 +40,8 @@ namespace copy
         {
             auto activate = [this] {
                 Sleep(std::chrono::milliseconds(250));
-                m_copy_panel->Refresh();
-                m_model.set_current_panel(DataModel::ActivePanel::COPY);
+                m_loading_panel->Refresh();
+                m_model.set_current_panel(DataModel::ActivePanel::LOADING);
                 m_screen.PostEvent(Event::Custom);
             };
 
@@ -53,9 +53,9 @@ namespace copy
         return main_ui_element({filler(), hbox({filler(), text(" "), filler()}), filler()});
     }
 
-    void StartupPanel::set_copy_panel(std::shared_ptr<BasePanel> panel)
+    void StartupPanel::set_loading_panel(std::shared_ptr<BasePanel> panel)
     {
-        m_copy_panel = panel;
+        m_loading_panel = panel;
     }
 
 } // namespace copy

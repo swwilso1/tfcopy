@@ -25,69 +25,51 @@
  *
  * ******************************************************************************/
 
-#ifndef DATA_MODEL_HPP
-#define DATA_MODEL_HPP
+#ifndef LOADING_PANEL_HPP
+#define LOADING_PANEL_HPP
 
-#include <string>
-#include <ftxui/component/component_options.hpp>
+#include <ftxui/component/component.hpp>
+#include <ftxui/component/screen_interactive.hpp>
+#include <ftxui/dom/elements.hpp>
+
 #include "TFFoundation.hpp"
+#include "data_model.hpp"
+#include "base_panel.hpp"
 
 using namespace TF::Foundation;
 using namespace ftxui;
 
 namespace copy
 {
-
-    struct DataModel
+    class LoadingPanel : public BasePanel
     {
-        using size_type = uint64_t;
+    public:
+        LoadingPanel(screen_type &, model_type &);
 
-        enum class ActivePanel
+        [[nodiscard]] auto Render() -> Element override;
+
+        void Refresh() override;
+
+        void set_copy_panel(std::shared_ptr<BasePanel> panel)
         {
-            STARTUP,
-            LOADING,
-            COPY
-        };
-
-        using string_type = std::string;
-        using version_type = Version;
-
-        string_type tool_name{"Tectiform Visual Copy Tool"};
-        version_type tool_version{1, 1, 0};
-
-        ButtonOption button_style{ButtonOption::Simple()};
-        Color background_color{Color::NavyBlue};
-        Color foreground_window_background_color{Color::GrayLight};
-        Color foreground_window_foreground_color{Color::Red};
-        Color text_color{Color::NavyBlue};
-
-        bool fix_problematic_file_paths{false};
-
-        size_type total_files{0};
-        size_type total_bytes{0};
-
-        FileManager file_manager{};
-
-        String source_path{};
-        String destination_path{};
-
-        DataModel();
-
-        void set_current_panel(ActivePanel panel)
-        {
-            ui_tab_selector = static_cast<decltype(ui_tab_selector)>(panel);
-        }
-
-        [[nodiscard]] auto get_panel_selector() -> int32_t *
-        {
-            return &ui_tab_selector;
+            m_copy_panel = panel;
         }
 
     private:
+        Component m_buttons{};
 
-        int32_t ui_tab_selector{};
+        bool m_interrupted{false};
+        bool m_load_thread_finished{false};
+        bool m_load_thread_started{false};
+
+        int32_t m_spinner_charset{19};
+        size_t m_spinner_index{0};
+
+        std::shared_ptr<BasePanel> m_copy_panel{nullptr};
+
+        auto format_total_bytes() -> String;
     };
 
 } // namespace copy
 
-#endif // DATA_MODEL_HPP
+#endif // LOADING_PANEL_HPP

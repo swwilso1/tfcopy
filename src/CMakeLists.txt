@@ -12,6 +12,8 @@ list(APPEND COPY_FILES
     copy_panel.hpp
     data_model.cpp
     data_model.hpp
+    loading_panel.cpp
+    loading_panel.hpp
     main.cpp
     startup_panel.cpp
     startup_panel.hpp

@@ -52,19 +52,10 @@ namespace copy
 
         void Refresh() override;
 
-        void set_paths(const String & source, const String & destination)
-        {
-            m_source_path = source;
-            m_destination_path = destination;
-        }
-
     private:
         using size_type = uint64_t;
 
         Component m_buttons{};
-
-        String m_source_path{};
-        String m_destination_path{};
 
         FileManager m_file_manager{};
         ProgressMeter<size_type> m_progress_meter{};
@@ -73,7 +64,6 @@ namespace copy
         bool m_copy_thread_finished{false};
         bool m_interrupted{false};
 
-        size_type m_total_files{0};
         size_type m_current_files{0};
         float m_percent_files_copied{0.0};
         std::string m_progress_message{};

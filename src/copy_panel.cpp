@@ -60,7 +60,7 @@ namespace copy
         std::lock_guard<std::mutex> lock(m_progress_message_mutex);
         auto duration = duration_cast<std::chrono::milliseconds>(SystemDate{} - m_start_copy_time);
         auto duration_text = m_duration_formatter.string_from_duration(duration);
-        auto text_for_file_progress = String::initWithFormat("%u/%u files", m_current_files, m_total_files);
+        auto text_for_file_progress = String::initWithFormat("%u/%u files", m_current_files, m_model.total_files);
         auto top_box = hbox({gauge(m_percent_files_copied) | color(m_model.text_color), separator(), text(text_for_file_progress.stlString()) | color(m_model.text_color),
                              separator(), text(duration_text.stlString()) | color(m_model.text_color)});
         return main_ui_element({filler(),
@@ -81,19 +81,18 @@ namespace copy
 
             std::function<void()> copy_function{};
 
-            LOG(LogPriority::Info, "source path %@ destination path %@", m_source_path, m_destination_path)
+            LOG(LogPriority::Info, "source path %@ destination path %@", m_model.source_path, m_model.destination_path)
 
-            if (m_file_manager.fileExistsAtPath(m_source_path))
+            if (m_file_manager.fileExistsAtPath(m_model.source_path))
             {
-                if (m_file_manager.directoryExistsAtPath(m_destination_path))
+                if (m_file_manager.directoryExistsAtPath(m_model.destination_path))
                 {
-                    auto base_name = m_file_manager.baseNameOfItemAtPath(m_source_path);
-                    m_destination_path += FileManager::pathSeparator + base_name;
+                    auto base_name = m_file_manager.baseNameOfItemAtPath(m_model.source_path);
+                    m_model.destination_path += FileManager::pathSeparator + base_name;
                 }
 
-                auto properties = m_file_manager.propertiesForItemAtPath(m_source_path);
-                m_progress_meter.set_total(properties.size);
-                m_total_files = 1;
+                auto properties = m_file_manager.propertiesForItemAtPath(m_model.source_path);
+                m_progress_meter.set_total(m_model.total_bytes);
 
                 copy_function = [this] {
                     Sleep(std::chrono::milliseconds(500));
@@ -108,17 +107,17 @@ namespace copy
                         return m_interrupted;
                     };
 
-                    auto base_file_name = m_file_manager.baseNameOfItemAtPath(m_source_path);
+                    auto base_file_name = m_file_manager.baseNameOfItemAtPath(m_model.source_path);
 
                     update_progress_message("Copying " + base_file_name);
 
-                    ItemCopier copier{m_source_path, m_destination_path};
+                    ItemCopier copier{m_model.source_path, m_model.destination_path};
                     copier.set_notifier(notifier);
                     copier.set_interrupter(interrupter);
                     copier.copy();
 
-                    auto permissions = m_file_manager.permissionsForItemAtPath(m_source_path);
-                    m_file_manager.setPermissionsForItemAtPath(m_destination_path, permissions);
+                    auto permissions = m_file_manager.permissionsForItemAtPath(m_model.source_path);
+                    m_file_manager.setPermissionsForItemAtPath(m_model.destination_path, permissions);
 
                     update_progress_message("Finished Copying!");
                     m_copy_thread_finished = true;
@@ -127,34 +126,18 @@ namespace copy
                     m_screen.PostEvent(Event::Custom);
                 };
             }
-            else if (m_file_manager.directoryExistsAtPath(m_source_path))
+            else if (m_file_manager.directoryExistsAtPath(m_model.source_path))
             {
-                if (m_file_manager.fileExistsAtPath(m_destination_path))
+                if (m_file_manager.fileExistsAtPath(m_model.destination_path))
                 {
                     auto message = String::initWithFormat("cannot overwrite non-directory '%@' with directory '%@'",
-                                                          &m_destination_path, &m_source_path);
+                                                          &m_model.destination_path, &m_model.source_path);
                     update_progress_message(message);
                     m_copy_thread_finished = true;
                     return;
                 }
 
-                size_type bytes_to_copy{0};
-
-                m_file_manager.walkItemsAtPath(true, m_source_path,
-                                               [this, &bytes_to_copy](const String & path) -> bool {
-                                                   // Ignore directories, only look for actual files.
-                                                   if (m_file_manager.directoryExistsAtPath(path))
-                                                   {
-                                                       return true;
-                                                   }
-
-                                                   auto properties = m_file_manager.propertiesForItemAtPath(path);
-                                                   bytes_to_copy += properties.size;
-                                                   m_total_files += 1;
-                                                   return true;
-                                               });
-
-                m_progress_meter.set_total(bytes_to_copy);
+                m_progress_meter.set_total(m_model.total_bytes);
                 copy_function = [this] {
                     m_start_copy_time = SystemDate{};
                     bool encounteredError{false};
@@ -169,21 +152,22 @@ namespace copy
                     };
 
                     m_file_manager.walkItemsAtPath(
-                        true, m_source_path,
+                        true, m_model.source_path,
                         [this, &notifier, &interrupter, &encounteredError](const String & path) -> bool {
                             auto directory_path_part = m_file_manager.dirNameOfItemAtPath(path);
                             auto base_file_name = m_file_manager.baseNameOfItemAtPath(path);
 
                             String destination_path{};
-                            if (directory_path_part == m_source_path)
+                            if (directory_path_part == m_model.source_path)
                             {
-                                destination_path = m_destination_path;
+                                destination_path = m_model.destination_path;
                             }
                             else
                             {
                                 auto sub_directory_part =
-                                    directory_path_part.substringFromIndex(m_source_path.length() + 1);
-                                destination_path = m_destination_path + FileManager::pathSeparator + sub_directory_part;
+                                    directory_path_part.substringFromIndex(m_model.source_path.length() + 1);
+                                destination_path =
+                                    m_model.destination_path + FileManager::pathSeparator + sub_directory_part;
                             }
 
                             String full_destination_path{destination_path + FileManager::pathSeparator +

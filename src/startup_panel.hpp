@@ -50,12 +50,12 @@ namespace copy
 
         [[nodiscard]] auto Render() -> Element override;
 
-        void set_copy_panel(std::shared_ptr<BasePanel> panel);
+        void set_loading_panel(std::shared_ptr<BasePanel> panel);
 
     private:
 
         bool m_activated_copy_panel{false};
-        std::shared_ptr<BasePanel> m_copy_panel{nullptr};
+        std::shared_ptr<BasePanel> m_loading_panel{nullptr};
     };
 
 } // namespace copy

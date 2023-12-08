@@ -31,6 +31,7 @@
 #include <ftxui/dom/elements.hpp>
 
 #include "data_model.hpp"
+#include "loading_panel.hpp"
 #include "copy_panel.hpp"
 #include "startup_panel.hpp"
 
@@ -94,25 +95,27 @@ int main(int argc, const char ** argv)
         return -1;
     }
 
-    FileManager file_manager{};
-
-    if (! file_manager.itemExistsAtPath(source_path))
+    if (! data_model.file_manager.itemExistsAtPath(source_path))
     {
         std::cout << source_path << " does not exist!" << std::endl;
         return -1;
     }
 
+    data_model.source_path = source_path;
+    data_model.destination_path = destination_path;
+
     auto screen = ScreenInteractive::Fullscreen();
     auto startup_component = std::make_shared<StartupPanel>(screen, data_model);
+    auto loading_component = std::make_shared<LoadingPanel>(screen, data_model);
     auto copy_component = std::make_shared<CopyPanel>(screen, data_model);
 
-    startup_component->set_copy_panel(copy_component);
-    copy_component->set_paths(source_path, destination_path);
+    startup_component->set_loading_panel(loading_component);
+    loading_component->set_copy_panel(copy_component);
 
     data_model.set_current_panel(DataModel::ActivePanel::STARTUP);
 
-    auto tab_component =
-        Container::Tab({startup_component, copy_component}, data_model.get_panel_selector());
+    const auto tab_component =
+        Container::Tab({startup_component, loading_component, copy_component}, data_model.get_panel_selector());
 
     screen.Loop(tab_component);
 
