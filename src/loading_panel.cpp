@@ -134,18 +134,24 @@ namespace copy
         constexpr uint64_t GIGA = 1024 * MEGA;
         constexpr uint64_t TERRA = 1024 * GIGA;
         constexpr uint64_t PETA = 1024 * TERRA;
+        constexpr uint64_t EXA = 1024 * PETA;
 
         String formatted_bytes{};
 
         auto format = [](uint64_t bytes, uint64_t divisor, String & label) -> String {
             const auto divided_value = static_cast<double>(bytes) / static_cast<double>(divisor);
-            return String::initWithFormat("%g %@", divided_value, &label);
+            return String::initWithFormat("%-6.6g %@", divided_value, &label);
         };
 
         uint64_t divisor{};
         String label{};
 
-        if (m_model.total_bytes / PETA > 0)
+        if (m_model.total_bytes / EXA > 0)
+        {
+            divisor = EXA;
+            label = "Eb";
+        }
+        else if (m_model.total_bytes / PETA > 0)
         {
             divisor = PETA;
             label = "Pb";
