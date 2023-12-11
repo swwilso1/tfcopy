@@ -27,6 +27,7 @@
 
 #include <functional>
 #include "copy_panel.hpp"
+#include "utilities.hpp"
 
 namespace copy
 {
@@ -36,6 +37,12 @@ namespace copy
         m_progress_meter.set_callback([this](auto percentage) {
             // percentage should be an integer between 0-100 inclusive.
             m_percent_files_copied = static_cast<decltype(m_percent_files_copied)>(percentage) / 100;
+            m_screen.PostEvent(Event::Custom);
+        });
+
+        m_current_file_progress_meter.set_callback([this](auto percentage) {
+            // percentage should be an integer between 0-100 inclusive.
+            m_percent_current_file_copied = static_cast<decltype(m_percent_current_file_copied)>(percentage) / 100;
             m_screen.PostEvent(Event::Custom);
         });
 
@@ -58,20 +65,42 @@ namespace copy
     auto CopyPanel::Render() -> Element
     {
         std::lock_guard<std::mutex> lock(m_progress_message_mutex);
-        auto duration = duration_cast<std::chrono::milliseconds>(SystemDate{} - m_start_copy_time);
-        auto duration_text = m_duration_formatter.string_from_duration(duration);
-        auto text_for_file_progress = String::initWithFormat("%u/%u files", m_current_files, m_model.total_files);
-        auto top_box = hbox({gauge(m_percent_files_copied) | color(m_model.text_color), separator(), text(text_for_file_progress.stlString()) | color(m_model.text_color),
-                             separator(), text(duration_text.stlString()) | color(m_model.text_color)});
-        return main_ui_element({filler(),
-                                hbox({filler(),
-                                      vbox({filler(), top_box, separator(),
-                                            hbox({text(m_progress_message) | size(WIDTH, EQUAL, 70) | color(m_model.text_color), filler()}),
-                                            separator(), hbox({filler(), m_buttons->Render(), filler()}) | color(m_model.text_color), filler()}) |
-                                          border | bgcolor(m_model.foreground_window_background_color) |
-                                          color(m_model.foreground_window_foreground_color),
-                                      filler()}),
-                                filler()});
+        const auto duration = duration_cast<std::chrono::milliseconds>(SystemDate{} - m_start_copy_time);
+
+        m_bytes_per_second = m_bytes_copied / (static_cast<double>(duration.count()) / 1000);
+
+        const auto duration_text = m_duration_formatter.string_from_duration(duration);
+        const auto text_for_file_progress = String::initWithFormat("%u/%u files", m_current_files, m_model.total_files);
+        const auto formatted_bytes_per_second = format_total_bytes(m_bytes_per_second);
+        const auto text_for_copy_rate = String::initWithFormat("%@/sec", &formatted_bytes_per_second);
+
+        const auto remaining_time = static_cast<double>(m_model.bytes_remaining) / m_bytes_per_second;
+        const auto remaining_milliseconds = std::chrono::milliseconds(static_cast<uint64_t>(remaining_time * 1000));
+        const auto formatted_remaining_time = m_duration_formatter.string_from_duration(remaining_milliseconds);
+        const auto text_for_time_remaining = String::initWithFormat("remaining: %@", &formatted_remaining_time);
+
+        const auto individual_file_progress_box =
+            hbox({gauge(m_percent_current_file_copied) | color(m_model.text_color)});
+        const auto overall_file_progress_box = hbox({gauge(m_percent_files_copied) | color(m_model.text_color)});
+        const auto statistics_box =
+            hbox({filler(), separator(), text(duration_text.stlString()) | color(m_model.text_color), separator(),
+                  text(text_for_file_progress.stlString()) | color(m_model.text_color), separator(),
+                  text(text_for_copy_rate.stlString()) | color(m_model.text_color), separator(),
+                  text(text_for_time_remaining.stlString()) | color(m_model.text_color), separator(), filler()});
+
+        return main_ui_element(
+            {filler(),
+             hbox(
+                 {filler(),
+                  vbox({filler(),
+                        hbox({text(m_progress_message) | size(WIDTH, EQUAL, 70) | color(m_model.text_color), filler()}),
+                        separator(), individual_file_progress_box, separator(), overall_file_progress_box, separator(),
+                        statistics_box, separator(),
+                        hbox({filler(), m_buttons->Render(), filler()}) | color(m_model.text_color), filler()}) |
+                      border | bgcolor(m_model.foreground_window_background_color) |
+                      color(m_model.foreground_window_foreground_color),
+                  filler()}),
+             filler()});
     }
 
     void CopyPanel::Refresh()
@@ -93,14 +122,20 @@ namespace copy
 
                 auto properties = m_file_manager.propertiesForItemAtPath(m_model.source_path);
                 m_progress_meter.set_total(m_model.total_bytes);
+                m_current_file_progress_meter.set_total(m_model.total_bytes);
 
-                copy_function = [this] {
+                copy_function = [this, &properties] {
                     Sleep(std::chrono::milliseconds(500));
                     m_start_copy_time = SystemDate{};
 
                     auto notifier = ItemCopier::notifier_type{[this](auto & size) {
                         m_progress_meter.increment_by(size);
                         m_progress_meter.notify();
+                        m_model.bytes_remaining -= size;
+                        m_bytes_copied += static_cast<decltype(m_bytes_copied)>(size);
+
+                        m_current_file_progress_meter.increment_by(size);
+                        m_current_file_progress_meter.notify();
                     }};
 
                     auto interrupter = [this]() -> bool {
@@ -116,7 +151,7 @@ namespace copy
                     copier.set_interrupter(interrupter);
                     copier.copy();
 
-                    auto permissions = m_file_manager.permissionsForItemAtPath(m_model.source_path);
+                    const auto permissions = m_file_manager.permissionsForItemAtPath(m_model.source_path);
                     m_file_manager.setPermissionsForItemAtPath(m_model.destination_path, permissions);
 
                     update_progress_message("Finished Copying!");
@@ -145,6 +180,11 @@ namespace copy
                     auto notifier = ItemCopier::notifier_type{[this](auto & size) {
                         m_progress_meter.increment_by(size);
                         m_progress_meter.notify();
+                        m_model.bytes_remaining -= size;
+                        m_bytes_copied += static_cast<decltype(m_bytes_copied)>(size);
+
+                        m_current_file_progress_meter.increment_by(size);
+                        m_current_file_progress_meter.notify();
                     }};
 
                     auto interrupter = [this]() -> bool {
@@ -256,6 +296,11 @@ namespace copy
                             }
 
                             update_progress_message("Copying " + base_file_name);
+
+                            auto path_properties = m_model.file_manager.propertiesForItemAtPath(path);
+
+                            m_current_file_progress_meter.set_total(path_properties.size);
+                            m_current_file_progress_meter.reset();
 
                             try
                             {

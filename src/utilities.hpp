@@ -25,49 +25,31 @@
  *
  * ******************************************************************************/
 
-#ifndef LOADING_PANEL_HPP
-#define LOADING_PANEL_HPP
-
-#include <ftxui/component/component.hpp>
-#include <ftxui/component/screen_interactive.hpp>
-#include <ftxui/dom/elements.hpp>
+#ifndef UTILITIES_HPP
+#define UTILITIES_HPP
 
 #include "TFFoundation.hpp"
-#include "data_model.hpp"
-#include "base_panel.hpp"
 
 using namespace TF::Foundation;
-using namespace ftxui;
 
 namespace copy
 {
-    class LoadingPanel : public BasePanel
-    {
-    public:
-        LoadingPanel(screen_type &, model_type &);
+    /**
+     * @brief function to format bytes into exabytes, petabytes, terrabytes,
+     * gigabytes, etc...
+     * @param bytes the bytes to format.
+     * @return a String containing the formatted bytes.
+     */
+    auto format_total_bytes(double bytes) -> String;
 
-        [[nodiscard]] auto Render() -> Element override;
-
-        void Refresh() override;
-
-        void set_copy_panel(std::shared_ptr<BasePanel> panel)
-        {
-            m_copy_panel = panel;
-        }
-
-    private:
-        Component m_buttons{};
-
-        bool m_interrupted{false};
-        bool m_load_thread_finished{false};
-        bool m_load_thread_started{false};
-
-        int32_t m_spinner_charset{19};
-        size_t m_spinner_index{0};
-
-        std::shared_ptr<BasePanel> m_copy_panel{nullptr};
-    };
+    /**
+     * @brief function to format seconds into millenia, centuries, decades, years,
+     * months, days, hours, minutes, seconds.
+     * @param seconds the number of seconds to format.
+     * @return a String containing the formatted time.
+     */
+    auto format_seconds(double seconds) -> String;
 
 } // namespace copy
 
-#endif // LOADING_PANEL_HPP
+#endif // UTILITIES_HPP

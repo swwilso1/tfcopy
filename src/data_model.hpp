@@ -65,6 +65,7 @@ namespace copy
 
         size_type total_files{0};
         size_type total_bytes{0};
+        size_type bytes_remaining{0};
 
         FileManager file_manager{};
 

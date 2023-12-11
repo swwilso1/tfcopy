@@ -59,13 +59,17 @@ namespace copy
 
         FileManager m_file_manager{};
         ProgressMeter<size_type> m_progress_meter{};
+        ProgressMeter<size_type> m_current_file_progress_meter{};
         BasicProgressNotifier<size_type> m_file_progress_notifier{};
         bool m_copy_thread_started{false};
         bool m_copy_thread_finished{false};
         bool m_interrupted{false};
 
+        double m_bytes_copied{0.0};
+        double m_bytes_per_second{1.0};
         size_type m_current_files{0};
         float m_percent_files_copied{0.0};
+        float m_percent_current_file_copied{0.0};
         std::string m_progress_message{};
         std::mutex m_progress_message_mutex{};
 

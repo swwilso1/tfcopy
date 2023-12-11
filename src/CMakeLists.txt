@@ -17,6 +17,8 @@ list(APPEND COPY_FILES
     main.cpp
     startup_panel.cpp
     startup_panel.hpp
+    utilities.cpp
+    utilities.hpp
     )
 
 add_executable(tfcopy ${COPY_FILES})

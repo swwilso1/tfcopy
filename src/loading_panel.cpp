@@ -27,6 +27,7 @@
 
 #include <functional>
 #include "loading_panel.hpp"
+#include "utilities.hpp"
 
 namespace copy
 {
@@ -49,7 +50,7 @@ namespace copy
     {
         auto box_text = String("Analyzing contents of ") + m_model.source_path;
         auto stl_text = box_text.stlStringInUTF8();
-        auto formatted_total_bytes = format_total_bytes();
+        auto formatted_total_bytes = format_total_bytes(static_cast<double>(m_model.total_bytes));
         auto counter_text =
             String::initWithFormat("total files: %u   total bytes: %@", m_model.total_files, &formatted_total_bytes);
 
@@ -115,6 +116,7 @@ namespace copy
                             m_model.total_files += 1;
                             return true;
                         });
+                    m_model.bytes_remaining = m_model.total_bytes;
                     m_copy_panel->Refresh();
                     m_model.set_current_panel(DataModel::ActivePanel::COPY);
                     m_load_thread_finished = true;
@@ -125,64 +127,6 @@ namespace copy
             load_thread.detach();
             m_load_thread_started = true;
         }
-    }
-
-    auto LoadingPanel::format_total_bytes() -> String
-    {
-        constexpr uint64_t KILO = 1024;
-        constexpr uint64_t MEGA = 1024 * KILO;
-        constexpr uint64_t GIGA = 1024 * MEGA;
-        constexpr uint64_t TERRA = 1024 * GIGA;
-        constexpr uint64_t PETA = 1024 * TERRA;
-        constexpr uint64_t EXA = 1024 * PETA;
-
-        String formatted_bytes{};
-
-        auto format = [](uint64_t bytes, uint64_t divisor, String & label) -> String {
-            const auto divided_value = static_cast<double>(bytes) / static_cast<double>(divisor);
-            return String::initWithFormat("%-6.6g %@", divided_value, &label);
-        };
-
-        uint64_t divisor{};
-        String label{};
-
-        if (m_model.total_bytes / EXA > 0)
-        {
-            divisor = EXA;
-            label = "Eb";
-        }
-        else if (m_model.total_bytes / PETA > 0)
-        {
-            divisor = PETA;
-            label = "Pb";
-        }
-        else if (m_model.total_bytes / TERRA > 0)
-        {
-            divisor = TERRA;
-            label = "Tb";
-        }
-        else if (m_model.total_bytes / GIGA > 0)
-        {
-            divisor = GIGA;
-            label = "Gb";
-        }
-        else if (m_model.total_bytes / MEGA > 0)
-        {
-            divisor = MEGA;
-            label = "Mb";
-        }
-        else if (m_model.total_bytes / KILO > 0)
-        {
-            divisor = KILO;
-            label = "Kb";
-        }
-        else
-        {
-            divisor = 1;
-            label = "B";
-        }
-
-        return format(m_model.total_bytes, divisor, label);
     }
 
 } // namespace copy
