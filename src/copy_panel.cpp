@@ -124,7 +124,7 @@ namespace copy
                 m_progress_meter.set_total(m_model.total_bytes);
                 m_current_file_progress_meter.set_total(m_model.total_bytes);
 
-                copy_function = [this, &properties] {
+                copy_function = [this] {
                     Sleep(std::chrono::milliseconds(500));
                     m_start_copy_time = SystemDate{};
 
