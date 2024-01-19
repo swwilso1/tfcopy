@@ -52,32 +52,32 @@ namespace copy
         if (bytes - EXA >= 1)
         {
             divisor = EXA;
-            label = "Eb";
+            label = "EB";
         }
         else if (bytes - PETA >= 1)
         {
             divisor = PETA;
-            label = "Pb";
+            label = "PB";
         }
         else if (bytes - TERRA >= 1)
         {
             divisor = TERRA;
-            label = "Tb";
+            label = "TB";
         }
         else if (bytes - GIGA >= 0)
         {
             divisor = GIGA;
-            label = "Gb";
+            label = "GB";
         }
         else if (bytes - MEGA >= 0)
         {
             divisor = MEGA;
-            label = "Mb";
+            label = "MB";
         }
         else if (bytes - KILO >= 0)
         {
             divisor = KILO;
-            label = "Kb";
+            label = "KB";
         }
         else
         {
